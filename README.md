@@ -1,3 +1,14 @@
+---
+title: Opinioniq Backend
+emoji: 🚀
+colorFrom: green
+colorTo: red
+sdk: docker
+pinned: false
+license: mit
+short_description: OpinionIQ-Backend Deployment server
+---
+
 # OpinionIQ
 
 OpinionIQ is an enterprise-grade AI sentiment analysis web application that allows users to upload customer feedback datasets (CSVs) and instantly receive intelligent insights, interactive visualizations, and an overarching executive summary.
