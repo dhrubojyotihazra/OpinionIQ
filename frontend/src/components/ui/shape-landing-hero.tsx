@@ -79,7 +79,7 @@ function HeroGeometric({
     title2?: string;
     children?: React.ReactNode;
 }) {
-    const fadeUpVariants = {
+    const fadeUpVariants: any = {
         hidden: { opacity: 0, y: 30 },
         visible: (i: number) => ({
             opacity: 1,

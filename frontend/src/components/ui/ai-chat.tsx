@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AIChatCard({ className, children }: { className?: string, children?: React.ReactNode }) {
