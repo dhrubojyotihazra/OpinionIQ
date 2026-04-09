@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, Database, FileText, Loader2, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Card } from '@/components/ui/card';
+import { Send, Bot, Database, FileText, AlertCircle, Sparkles, Trash2, Copy, Check, ChevronDown } from 'lucide-react';
+import { config } from '../config';
 
+/* ─────────────── types ─────────────── */
 interface Message {
     id: string;
     role: 'user' | 'assistant';
@@ -13,224 +13,408 @@ interface Message {
     isError?: boolean;
 }
 
-const ChatInterface = () => {
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: 'initial',
-            role: 'assistant',
-            text: "Hello! I'm the OpinionIQ Assistant. I have two modes:\n\n1. **Data Query:** Ask me quantitative questions like *'How many reviews are positive?'*\n2. **Report Query:** Ask me qualitative questions like *'What are the main complaints?'*\n\nHow can I help you analyze the dataset?",
-            mode: 'data'
-        }
-    ]);
+/* ─────────────── suggestions ─────────────── */
+const SUGGESTIONS: Record<'data' | 'report', string[]> = {
+    data: [
+        'How many positive reviews are there?',
+        'What is the average star rating?',
+        'Which words appear most in negative reviews?',
+        'How many reviews are missing a rating?',
+    ],
+    report: [
+        'Summarise the top customer complaints.',
+        'What product features are praised most?',
+        'Write a 3-bullet executive summary.',
+        'What sentiment trends stand out?',
+    ],
+};
+
+/* ─────────────── markdown-lite renderer ─────────────── */
+function renderText(raw: string) {
+    return raw.split('\n').map((line, i, arr) => {
+        const html = line
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.12);padding:1px 5px;border-radius:4px;font-family:monospace;font-size:0.78em;color:#a5b4fc">$1</code>');
+        return (
+            <span key={i}>
+                <span dangerouslySetInnerHTML={{ __html: html }} />
+                {i < arr.length - 1 && <br />}
+            </span>
+        );
+    });
+}
+
+/* ═══════════ COMPONENT ═══════════ */
+export default function ChatInterface() {
+    const [hasUploaded] = useState(() => sessionStorage.getItem('hasUploaded') === 'true');
+    const [chatMode, setChatMode] = useState<'data' | 'report'>('data');
+    const [messages, setMessages] = useState<Message[]>([{
+        id: 'welcome',
+        role: 'assistant',
+        mode: 'data',
+        text: "Hello! I'm the OpinionIQ AI Assistant.\n\nChoose a mode:\n\n**Data Query** – quantitative questions about your dataset (counts, averages, distributions).\n\n**Report Query** – qualitative, executive-style insights and narrative summaries.\n\nWhat would you like to know?",
+    }]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [chatMode, setChatMode] = useState<'data' | 'report'>('data');
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [showScrollBtn, setShowScrollBtn] = useState(false);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const endRef      = useRef<HTMLDivElement>(null);
+    const scrollRef   = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    /* auto-scroll */
+    useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isLoading]);
+
+    /* grow textarea */
+    useEffect(() => {
+        const ta = textareaRef.current;
+        if (!ta) return;
+        ta.style.height = 'auto';
+        ta.style.height = Math.min(ta.scrollHeight, 130) + 'px';
+    }, [input]);
+
+    const onScroll = () => {
+        const el = scrollRef.current;
+        if (el) setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 100);
     };
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, isLoading]);
-
-    const handleSend = async () => {
+    /* send */
+    const send = async () => {
         if (!input.trim() || isLoading) return;
-
-        const userText = input.trim();
+        const text = input.trim();
         setInput('');
-
-        const newUserMsg: Message = {
-            id: Date.now().toString(),
-            role: 'user',
-            text: userText,
-            mode: chatMode
-        };
-
-        setMessages(prev => [...prev, newUserMsg]);
+        setMessages(p => [...p, { id: Date.now().toString(), role: 'user', text, mode: chatMode }]);
         setIsLoading(true);
-
-        const endpoint = chatMode === 'data' ? '/chat/data' : '/chat/report';
-
         try {
-            const response = await axios.post(`http://127.0.0.1:5000${endpoint}`, {
-                message: userText
-            });
-
-            setMessages(prev => [...prev, {
+            const { data } = await axios.post(`${config.apiUrl}/chat/${chatMode}`, { message: text });
+            setMessages(p => [...p, {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                text: response.data.reply || response.data.response || "No response generated.",
-                mode: chatMode
-            }]);
-        } catch (err: unknown) {
-            console.error("Chat error:", err);
-            let errMsg = "Sorry, I encountered an error answering that.";
-            if (axios.isAxiosError(err)) {
-                errMsg = err.response?.data?.error || errMsg;
-            }
-            setMessages(prev => [...prev, {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                text: errMsg,
+                text: data.response ?? data.reply ?? 'No response generated.',
                 mode: chatMode,
-                isError: true
             }]);
+        } catch (err) {
+            let msg = 'Sorry, I encountered an error. Please try again.';
+            if (axios.isAxiosError(err)) msg = err.response?.data?.error ?? msg;
+            setMessages(p => [...p, { id: (Date.now() + 1).toString(), role: 'assistant', text: msg, mode: chatMode, isError: true }]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
+    const onKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
     };
 
+    const copy = (id: string, text: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    const clearChat = () => setMessages(prev => [prev[0]]);
+
+    /* ── no dataset ── */
+    if (!hasUploaded) {
+        return (
+            <div style={{ minHeight: '100vh', background: '#09090f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                    style={{ background: '#141420', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '48px 40px', maxWidth: 380, textAlign: 'center' }}
+                >
+                    <AlertCircle style={{ width: 52, height: 52, color: '#f59e0b', margin: '0 auto 20px' }} />
+                    <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 10 }}>No Dataset Loaded</h2>
+                    <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6, marginBottom: 28 }}>
+                        Upload a CSV file on the home page first, then come back to chat with your data.
+                    </p>
+                    <button
+                        onClick={() => (window.location.href = '/')}
+                        style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 12, padding: '10px 28px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                        Go to Upload
+                    </button>
+                </motion.div>
+            </div>
+        );
+    }
+
+    /* ── main ── */
     return (
-        <Card className="flex flex-col h-[650px] border border-slate-800/60 rounded-xl overflow-hidden bg-slate-900/40 backdrop-blur-xl shadow-2xl relative">
-            {/* Header */}
-            <div className="bg-slate-900/80 p-4 border-b border-slate-800/60 flex flex-col sm:flex-row gap-4 justify-between items-center relative z-10 w-full">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-[2px]">
-                        <div className="w-full h-full bg-slate-950 rounded-full flex items-center justify-center">
-                            <Bot className="w-5 h-5 text-indigo-400" />
+        <div style={{
+            minHeight: '100vh',
+            height: '100vh',
+            background: 'linear-gradient(135deg, #09090f 0%, #0d0d1a 50%, #090912 100%)',
+            display: 'flex',
+            flexDirection: 'column',
+            fontFamily: "'Inter', system-ui, sans-serif",
+        }}>
+            {/* spacer for top nav */}
+            <div style={{ height: 80, flexShrink: 0 }} />
+
+            {/* ── content column ── */}
+            <div className="flex-1 flex flex-col w-full max-w-[860px] mx-auto px-3 sm:px-5 md:px-8 pb-6 min-h-0">
+                {/* ── header row ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
+                    {/* title */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Sparkles style={{ width: 18, height: 18, color: '#818cf8' }} />
+                        <span style={{ color: '#fff', fontWeight: 600, fontSize: 17 }}>AI Chat</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: 6 }}>
+                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34d399', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+                            <span style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Live</span>
+                        </span>
+                    </div>
+
+                    {/* mode toggle + clear */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 4, gap: 4 }}>
+                            {(['data', 'report'] as const).map(m => (
+                                <button key={m} onClick={() => setChatMode(m)} style={{
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    padding: '6px 16px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                                    fontSize: 12, fontWeight: 600,
+                                    background: chatMode === m ? (m === 'data' ? '#4f46e5' : '#7c3aed') : 'transparent',
+                                    color: chatMode === m ? '#fff' : '#64748b',
+                                    transition: 'all 0.2s',
+                                }}>
+                                    {m === 'data' ? <Database style={{ width: 12, height: 12 }} /> : <FileText style={{ width: 12, height: 12 }} />}
+                                    {m === 'data' ? 'Data' : 'Report'}
+                                </button>
+                            ))}
                         </div>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-white">OpinionIQ Assistant</h3>
-                        <p className="text-xs text-slate-400 flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Online
-                        </p>
+                        <button onClick={clearChat} style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '6px 14px', borderRadius: 10,
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            background: 'transparent', color: '#64748b',
+                            fontSize: 12, cursor: 'pointer',
+                        }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#f87171'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(248,113,113,0.3)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#64748b'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                        >
+                            <Trash2 style={{ width: 12, height: 12 }} /> Clear
+                        </button>
                     </div>
                 </div>
 
-                {/* Mode Toggle */}
-                <div className="flex bg-slate-950/50 p-1 rounded-lg border border-slate-800/50">
-                    <button
-                        onClick={() => setChatMode('data')}
-                        className={cn(
-                            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all",
-                            chatMode === 'data'
-                                ? "bg-indigo-600 text-white shadow-lg"
-                                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                        )}
+                {/* ── messages box ── */}
+                <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+                    <div
+                        ref={scrollRef}
+                        onScroll={onScroll}
+                        className="h-full overflow-y-auto bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6 flex flex-col gap-4"
+                        style={{
+                            scrollbarWidth: 'none',
+                        }}
                     >
-                        <Database className="w-4 h-4" />
-                        Data Query
-                    </button>
-                    <button
-                        onClick={() => setChatMode('report')}
-                        className={cn(
-                            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all",
-                            chatMode === 'report'
-                                ? "bg-purple-600 text-white shadow-lg"
-                                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                        )}
-                    >
-                        <FileText className="w-4 h-4" />
-                        Report Query
-                    </button>
-                </div>
-            </div>
+                        <AnimatePresence initial={false}>
+                            {messages.map(msg => (
+                                <motion.div
+                                    key={msg.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+                                        alignItems: 'flex-start',
+                                        gap: 10,
+                                        alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                                    }}
+                                    className="group max-w-[90%] sm:max-w-[82%]"
+                                >
+                                    {/* avatar */}
+                                    <div style={{
+                                        width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: msg.role === 'assistant' ? 'rgba(79,70,229,0.25)' : 'rgba(255,255,255,0.1)',
+                                        border: msg.role === 'assistant' ? '1px solid rgba(129,140,248,0.3)' : '1px solid rgba(255,255,255,0.15)',
+                                        marginTop: 2,
+                                    }}>
+                                        {msg.role === 'assistant'
+                                            ? <Bot style={{ width: 14, height: 14, color: '#a5b4fc' }} />
+                                            : <span style={{ fontSize: 10, fontWeight: 700, color: '#cbd5e1' }}>U</span>
+                                        }
+                                    </div>
 
-            {/* Chat Area */}
-            <div className="flex-1 p-6 overflow-y-auto overflow-x-hidden space-y-6 relative z-10 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-                <AnimatePresence initial={false}>
-                    {messages.map((msg) => (
-                        <motion.div
-                            key={msg.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={cn(
-                                "flex w-full",
-                                msg.role === 'user' ? "justify-end" : "justify-start"
+                                    {/* bubble */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        <div style={{
+                                            padding: '12px 16px',
+                                            borderRadius: msg.role === 'user' ? '18px 4px 18px 18px' : '4px 18px 18px 18px',
+                                            fontSize: 14,
+                                            lineHeight: 1.6,
+                                            color: msg.isError ? '#fca5a5' : '#e2e8f0',
+                                            background: msg.role === 'user'
+                                                ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
+                                                : msg.isError
+                                                    ? 'rgba(127,29,29,0.4)'
+                                                    : 'rgba(255,255,255,0.06)',
+                                            border: msg.role === 'user'
+                                                ? 'none'
+                                                : msg.isError
+                                                    ? '1px solid rgba(248,113,113,0.2)'
+                                                    : '1px solid rgba(255,255,255,0.08)',
+                                        }}>
+                                            {renderText(msg.text)}
+                                        </div>
+                                        {/* copy */}
+                                        {msg.role === 'assistant' && (
+                                            <button
+                                                onClick={() => copy(msg.id, msg.text)}
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', gap: 4,
+                                                    background: 'none', border: 'none', cursor: 'pointer',
+                                                    color: '#475569', fontSize: 10, padding: '2px 4px',
+                                                    opacity: 0, transition: 'opacity 0.2s',
+                                                }}
+                                                className="copy-btn"
+                                            >
+                                                {copiedId === msg.id
+                                                    ? <><Check style={{ width: 11, height: 11, color: '#34d399' }} /><span style={{ color: '#34d399' }}>Copied</span></>
+                                                    : <><Copy style={{ width: 11, height: 11 }} /> Copy</>
+                                                }
+                                            </button>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            ))}
+
+                            {/* typing indicator */}
+                            {isLoading && (
+                                <motion.div key="typing"
+                                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                    style={{ display: 'flex', gap: 10, alignItems: 'flex-start', alignSelf: 'flex-start' }}
+                                >
+                                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(79,70,229,0.25)', border: '1px solid rgba(129,140,248,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                                        <Bot style={{ width: 14, height: 14, color: '#a5b4fc' }} />
+                                    </div>
+                                    <div style={{ padding: '12px 18px', borderRadius: '4px 18px 18px 18px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 5, alignItems: 'center' }}>
+                                        {[0, 0.15, 0.3].map((delay, i) => (
+                                            <motion.span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#818cf8', display: 'inline-block' }}
+                                                animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay }} />
+                                        ))}
+                                    </div>
+                                </motion.div>
                             )}
-                        >
-                            <div className={cn(
-                                "flex gap-3 max-w-[85%]",
-                                msg.role === 'user' ? "flex-row-reverse" : "flex-row"
-                            )}>
-                                {/* Avatar */}
-                                <div className={cn(
-                                    "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-1",
-                                    msg.role === 'user' ? "bg-slate-800 border border-slate-700" : "bg-indigo-900/50 border border-indigo-500/30"
-                                )}>
-                                    {msg.role === 'user'
-                                        ? <User className="w-4 h-4 text-slate-300" />
-                                        : <Bot className="w-4 h-4 text-indigo-400" />
-                                    }
-                                </div>
+                        </AnimatePresence>
+                        <div ref={endRef} />
+                    </div>
 
-                                {/* Bubble */}
-                                <div className={cn(
-                                    "px-4 py-3 rounded-2xl whitespace-pre-wrap leading-relaxed shadow-sm",
-                                    msg.role === 'user'
-                                        ? "bg-indigo-600 text-white rounded-tr-sm"
-                                        : msg.isError
-                                            ? "bg-red-950/50 border border-red-900/50 text-red-200 rounded-tl-sm"
-                                            : "bg-slate-800/80 border border-slate-700/50 text-slate-200 rounded-tl-sm backdrop-blur-sm"
-                                )}>
-                                    {msg.role === 'assistant' && msg.isError && (
-                                        <AlertCircle className="w-4 h-4 mb-2 text-red-400 inline-block mr-2" />
-                                    )}
-                                    {msg.text}
-                                </div>
-                            </div>
-                        </motion.div>
+                    {/* scroll-to-bottom */}
+                    <AnimatePresence>
+                        {showScrollBtn && (
+                            <motion.button
+                                initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+                                onClick={() => endRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                                style={{ position: 'absolute', bottom: 12, right: 12, width: 32, height: 32, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(30,30,50,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}
+                            >
+                                <ChevronDown style={{ width: 16, height: 16 }} />
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* ── suggestion chips ── */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, flexShrink: 0 }}>
+                    {SUGGESTIONS[chatMode].map(s => (
+                        <button key={s} onClick={() => { setInput(s); textareaRef.current?.focus(); }} style={{
+                            padding: '6px 14px', borderRadius: 999,
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            background: 'rgba(255,255,255,0.04)',
+                            color: '#94a3b8', fontSize: 12, cursor: 'pointer',
+                            whiteSpace: 'nowrap', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis',
+                            transition: 'all 0.15s',
+                        }}
+                            onMouseEnter={e => { const b = e.currentTarget; b.style.background = 'rgba(255,255,255,0.09)'; b.style.color = '#e2e8f0'; }}
+                            onMouseLeave={e => { const b = e.currentTarget; b.style.background = 'rgba(255,255,255,0.04)'; b.style.color = '#94a3b8'; }}
+                        >
+                            {s}
+                        </button>
                     ))}
+                </div>
 
-                    {isLoading && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex justify-start w-full"
+                {/* ── INPUT BAR — fully opaque, no backdrop ── */}
+                <div style={{
+                    marginTop: 12,
+                    flexShrink: 0,
+                    borderRadius: 16,
+                    background: '#1e2030',
+                    border: '1.5px solid rgba(255,255,255,0.15)',
+                    overflow: 'hidden',
+                }}>
+                    {/* textarea row */}
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, padding: '14px 16px 8px' }}>
+                        {/* mode pill */}
+                        <span style={{
+                            flexShrink: 0, alignSelf: 'flex-end', marginBottom: 4,
+                            padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700,
+                            textTransform: 'uppercase', letterSpacing: '0.08em',
+                            background: chatMode === 'data' ? 'rgba(79,70,229,0.35)' : 'rgba(124,58,237,0.35)',
+                            color: chatMode === 'data' ? '#a5b4fc' : '#c4b5fd',
+                            border: chatMode === 'data' ? '1px solid rgba(129,140,248,0.4)' : '1px solid rgba(196,181,253,0.4)',
+                        }}>
+                            {chatMode}
+                        </span>
+
+                        <textarea
+                            ref={textareaRef}
+                            rows={1}
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            onKeyDown={onKey}
+                            disabled={isLoading}
+                            placeholder={chatMode === 'data' ? 'Ask a data question…' : 'Ask for a report insight…'}
+                            style={{
+                                flex: 1,
+                                background: 'transparent',
+                                border: 'none',
+                                outline: 'none',
+                                resize: 'none',
+                                color: '#ffffff',
+                                fontSize: 14,
+                                lineHeight: 1.55,
+                                fontFamily: 'inherit',
+                                caretColor: '#ffffff',
+                                padding: '2px 0',
+                                maxHeight: 130,
+                                overflowY: 'auto',
+                            }}
+                        />
+                    </div>
+
+                    {/* bottom bar: hint + send */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between px-4 pb-3 pt-2 gap-3 sm:gap-0">
+                        <span className="text-slate-500 text-[10px] sm:text-[11px] self-start sm:self-auto hidden sm:block">Shift+Enter for new line</span>
+                        <button
+                            onClick={send}
+                            disabled={!input.trim() || isLoading}
+                            className={`flex items-center gap-2 px-5 py-2 rounded-xl border-none text-[13px] font-semibold transition-all w-full sm:w-auto justify-center ${
+                                !input.trim() || isLoading
+                                    ? 'bg-white/5 text-slate-500 cursor-not-allowed'
+                                    : chatMode === 'data' ? 'bg-indigo-600 text-white hover:bg-indigo-500 cursor-pointer' : 'bg-purple-600 text-white hover:bg-purple-500 cursor-pointer'
+                            }`}
                         >
-                            <div className="flex gap-3 max-w-[80%] flex-row">
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-900/50 border border-indigo-500/30 flex items-center justify-center mt-1">
-                                    <Bot className="w-4 h-4 text-indigo-400" />
-                                </div>
-                                <div className="px-5 py-4 rounded-2xl rounded-tl-sm bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm flex items-center gap-2">
-                                    <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
-                                    <span className="text-slate-400 text-sm">Thinking...</span>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                <div ref={messagesEndRef} />
+                            <Send style={{ width: 13, height: 13 }} />
+                            Send
+                        </button>
+                    </div>
+                </div>
+
+                {/* footer */}
+                <p style={{ textAlign: 'center', color: '#334155', fontSize: 10, marginTop: 8, flexShrink: 0 }}>
+                    Powered by Groq · Llama 3.1 · OpinionIQ
+                </p>
             </div>
 
-            {/* Input Form */}
-            <div className="p-4 bg-slate-900/90 border-t border-slate-800/60 relative z-10">
-                <div className="relative flex items-end gap-2 bg-slate-950 rounded-xl border border-slate-800 shadow-inner p-2 focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
-                    <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder={chatMode === 'data' ? "Ask about values, counts, or stats..." : "Ask for summaries, themes, or insights..."}
-                        className="flex-1 max-h-32 min-h-[44px] bg-transparent resize-none px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none scrollbar-thin scrollbar-thumb-slate-700"
-                        rows={1}
-                        disabled={isLoading}
-                    />
-                    <button
-                        onClick={handleSend}
-                        disabled={!input.trim() || isLoading}
-                        className="flex-shrink-0 h-11 w-11 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shadow-lg shadow-indigo-500/20"
-                    >
-                        <Send className="w-5 h-5 ml-1" />
-                    </button>
-                </div>
-                <div className="text-center mt-3">
-                    <span className="text-xs text-slate-500">
-                        {chatMode === 'data' ? 'Using PandasAI for exact dataframe queries.' : 'Using Gemini for contextual semantic reporting.'}
-                    </span>
-                </div>
-            </div>
-        </Card>
+            {/* global styles for hover on copy buttons */}
+            <style>{`
+                .group:hover .copy-btn { opacity: 1 !important; }
+                textarea::placeholder { color: #475569; }
+                ::-webkit-scrollbar { display: none; }
+            `}</style>
+        </div>
     );
-};
-
-export default ChatInterface;
+}

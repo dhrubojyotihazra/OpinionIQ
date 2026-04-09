@@ -32,14 +32,31 @@ It features a decoupled architecture with a modern, glassmorphism React frontend
 ### Backend
 - **Framework**: Python Flask
 - **Data Processing**: Pandas
-- **NLP / Sentiment Analysis**: Hugging Face Transformers (`distilbert-base-uncased-finetuned-sst-2-english`)
-- **LLM / Generative AI**: Google Generative AI (`gemini-2.5-flash`)
+- **NLP / Sentiment Analysis**: TextBlob
+- **LLM / Generative AI**: Groq (Llama 3.1 8B Instant)
 
 ---
 
 ## How to Run the Project Locally
 
 To run OpinionIQ, you will need to start two separate development servers: one for the Python Backend, and one for the React Frontend.
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+```bash
+GROQ_API_KEY=your_groq_api_key
+HF_TOKEN=your_huggingface_token
+FLASK_ENV=development
+CORS_ORIGINS=http://localhost:5173
+```
+
+### Frontend (`frontend/.env`)
+```bash
+VITE_API_URL=http://localhost:5000
+```
+
+**Note**: Never commit `.env` files to git. Use `.env.example` as a template.
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v16+ recommended)
@@ -72,7 +89,7 @@ To run OpinionIQ, you will need to start two separate development servers: one f
    ```bash
    pip install -r requirements.txt
    ```
-5. **API Keys**: Ensure your API keys are configured inside `app.py`. The application requires a Valid `GEMINI_API_KEY` and an `HF_TOKEN` (Hugging Face token) to function.
+5. **API Keys**: Make sure you have created your `.env` file in the `backend` directory according to the "Environment Variables" section above.
 6. Start the Flask server:
    ```bash
    python app.py

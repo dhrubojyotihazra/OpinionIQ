@@ -1,0 +1,195 @@
+
+================================================================================
+  OpinionIQ — Complete Setup & Running Guide
+  Run the full app (Backend + Frontend) from scratch
+================================================================================
+
+PREREQUISITES
+─────────────────────────────────────────────────────────────────────────────
+  • Python 3.10+ installed  →  https://www.python.org/downloads/
+  • Node.js 18+  installed  →  https://nodejs.org/
+  • A valid GROQ_API_KEY    →  https://console.groq.com/
+    (Free tier works. Model used: llama-3.1-8b-instant)
+
+
+================================================================================
+  STEP 1 — SET UP THE BACKEND  (Flask API)
+================================================================================
+
+1.1  Open a terminal and navigate to the backend folder:
+
+      cd C:\Users\HP\Desktop\dhruv\OpinionIQ\backend
+
+
+1.2  Install Python dependencies:
+
+      pip install flask flask-cors pandas numpy textblob werkzeug
+
+
+1.3  Download the NLTK corpora required by TextBlob
+     (only needed the first time — skip on subsequent runs):
+
+      python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng'); nltk.download('brown'); nltk.download('wordnet')"
+
+
+1.4  (Optional) Update the API key inside app.py if you change it:
+     Open app.py and update line:
+       GROQ_API_KEY = "your_groq_api_key_here"
+
+
+1.5  Start the Flask backend server:
+
+      python app.py
+
+     ✅ You should see:
+        * Running on http://127.0.0.1:5000
+        * Debug mode: on
+
+
+================================================================================
+  STEP 2 — SET UP THE FRONTEND  (Vite + React)
+================================================================================
+
+2.1  Open a NEW terminal (keep the backend running) and navigate to frontend:
+
+      cd C:\Users\HP\Desktop\dhruv\OpinionIQ\frontend
+
+
+2.2  Install Node dependencies (first time only — skip if node_modules exists):
+
+      npm install
+
+
+2.3  Start the Vite development server:
+
+      npm run dev
+
+     ✅ You should see:
+        VITE ready in ~800ms
+        ➜  Local:   http://localhost:5173/
+
+
+================================================================================
+  STEP 3 — USE THE APP
+================================================================================
+
+3.1  Open your browser and go to:
+
+      http://localhost:5173/
+
+3.2  On the landing page — Upload a CSV file (e.g. Customer_Sentiment.csv
+     which is already in the project root at:
+       C:\Users\HP\Desktop\dhruv\OpinionIQ\Customer_Sentiment.csv
+
+3.3  After upload succeeds, the app will automatically redirect you to:
+
+      http://localhost:5173/dashboard
+
+     The dashboard calls the backend's /analyze endpoint to generate:
+       • Executive AI Summary          (via Groq LLM)
+       • Sentiment Distribution chart  (Plotly pie)
+       • Rating Distribution chart     (Plotly bar)
+       • Top Positive Keywords chart   (Plotly bar)
+
+3.4  Navigate to the Chat tab:
+
+      http://localhost:5173/chat
+
+     Two modes:
+       • Data Query  → quantitative questions ("How many 5-star reviews?")
+       • Report Mode → executive narrative questions ("Summarise complaints")
+
+
+================================================================================
+  QUICK-START COMMAND SUMMARY  (copy-paste ready)
+================================================================================
+
+  Terminal 1 — Backend:
+  ──────────────────────────────────────────────
+  cd C:\Users\HP\Desktop\dhruv\OpinionIQ\backend
+  pip install flask flask-cors pandas numpy textblob werkzeug
+  python app.py
+
+  Terminal 2 — Frontend:
+  ──────────────────────────────────────────────
+  cd C:\Users\HP\Desktop\dhruv\OpinionIQ\frontend
+  npm install
+  npm run dev
+
+  Browser:
+  ──────────────────────────────────────────────
+  Open  →  http://localhost:5173/
+
+
+================================================================================
+  API ENDPOINTS  (Flask backend at http://127.0.0.1:5000)
+================================================================================
+
+  POST  /upload         Upload a CSV file (multipart/form-data, key="file")
+                        Runs: load_dataset → map_columns_with_groq → build_standard_df
+
+  POST  /analyze        Run full EDA on the uploaded dataset.
+                        Returns: total_reviews, sentiment_distribution,
+                                 rating_distribution, top_keywords, summary
+
+  POST  /chat/data      Send a data question.
+                        Body: { "message": "How many positive reviews?" }
+                        Uses FULL dataset aggregate stats — not just a sample.
+
+  POST  /chat/report    Send an executive report question.
+                        Body: { "message": "Summarise top complaints" }
+                        Uses FULL dataset stats + sentiment % breakdown.
+
+
+================================================================================
+  TROUBLESHOOTING
+================================================================================
+
+  Problem: Backend won't start — "No module named textblob"
+  Fix:     pip install textblob
+
+  Problem: TextBlob error about missing corpus (punkt / wordnet)
+  Fix:     python -c "import nltk; nltk.download('all')"
+
+  Problem: Frontend shows blank page / white screen
+  Fix:     Check browser console (F12) for errors.
+           Make sure backend is running on port 5000 (CORS is enabled).
+
+  Problem: Chat says "50 rows" instead of full dataset count
+  Fix:     Restart the backend (python app.py) — the old version used head(50).
+           The current version passes pre-computed aggregate stats.
+
+  Problem: GROQ API error / rate limit
+  Fix:     Check your key at https://console.groq.com/
+           Free tier: 14,400 req/day, 30 req/min on llama-3.1-8b-instant
+
+  Problem: "No dataset available" on /chat
+  Fix:     Upload a CSV first via the home page. Data is held in memory per
+           server session — re-upload after restarting the backend.
+
+
+================================================================================
+  PROJECT STRUCTURE
+================================================================================
+
+  OpinionIQ/
+  ├── backend/
+  │   ├── app.py              ← Flask API (all routes + pipeline logic)
+  │   └── requirements.txt    ← Python dependencies
+  ├── frontend/
+  │   ├── src/
+  │   │   ├── App.tsx          ← Router + Nav
+  │   │   ├── components/
+  │   │   │   ├── HeroUpload.tsx     ← Landing / upload page
+  │   │   │   ├── Dashboard.tsx      ← Analytics dashboard
+  │   │   │   └── ChatInterface.tsx  ← Full-screen AI chat
+  │   │   └── index.css
+  │   ├── package.json
+  │   └── vite.config.ts
+  ├── Customer_Sentiment.csv   ← Sample dataset (23k+ rows)
+  └── RUNNING_GUIDE.txt        ← This file
+
+
+================================================================================
+  END OF GUIDE
+================================================================================

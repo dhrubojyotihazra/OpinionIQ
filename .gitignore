@@ -19,3 +19,19 @@ Thumbs.db
 # Project Specific
 *.csv
 uploaded_debug.csv
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.*.local
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# Vercel
+.vercel
+
+# Render
+.render
