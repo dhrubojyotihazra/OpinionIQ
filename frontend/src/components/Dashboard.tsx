@@ -136,7 +136,7 @@ const Dashboard: React.FC = () => {
 
     return (
         <GeometricBackground className="min-h-screen w-full p-6 md:p-12 pb-32">
-            <div className="max-w-7xl mx-auto space-y-6 px-2 sm:px-4">
+            <div className="max-w-7xl mx-auto space-y-6 px-2 sm:px-4 relative z-20">
                 {/* ── Dashboard Header ── */}
                 <header className="flex flex-col md:flex-row gap-6 md:items-start justify-between mb-10 w-full pt-8">
                     <div className="flex items-center gap-4 text-center md:text-left self-center md:self-start">

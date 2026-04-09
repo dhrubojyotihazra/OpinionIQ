@@ -3,6 +3,8 @@ import { Github, Linkedin, Mail, Globe, GraduationCap, MapPin } from 'lucide-rea
 import { ShineBorder } from '@/components/ui/shine-border';
 import GeometricBackground from '@/components/ui/geometric';
 
+import profileImage from '../../public/profile.jpg';
+
 /* ─────────────────────────────────────────
    👇 PERSONALISE THIS SECTION
    ───────────────────────────────────────── */
@@ -10,7 +12,7 @@ const PROFILE = {
     // STEP 1 — Replace with your hosted image URL or local import path
     // e.g. "/profile.jpg"  (place photo in /public folder)
     // or   "https://your-cdn.com/photo.jpg"
-    photo: '/profile.jpg',                              // ← paste your photo URL here
+    photo: profileImage,                              // ← paste your photo URL here
 
     name:       'Dhrubojyoti Hazra',
     degree:     'BTech Computer Science and Engineering — Data Science',
