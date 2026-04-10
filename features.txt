@@ -1,0 +1,33 @@
+========================================================
+OPINIONIQ: FEATURE AND APPLICATION BREAKDOWN
+========================================================
+
+OpinionIQ is a multi-page, visually immersive single-page application consisting of the following core features and pages:
+
+1. THE LANDING PAGE (Hero Page)
+- Feature: Shape Landing Hero Background. A sophisticated, randomized Framer Motion geometric animation using liquid-glass shapes and blur layers.
+- Feature: Seamless CSV Drag-and-Drop Uploader. Handles intuitive user interaction with active loading states, button expansions, and API POST requests forwarding to the Python NLP model.
+
+2. THE ANALYTICS DASHBOARD
+- Feature: High-Level Analytics Row. Displays Total Processed Reviews, Valid Entries, Missing Values, and Dataset Rows using lucid iconography.
+- Feature: Sentiment Distribution Chart. A React-Plotly dynamic Pie Chart converting categorical ML text sentiments (Positive vs Negative vs Neutral) into beautiful data points.
+- Feature: Top Keywords Chart. A Bar Chart analyzing the highest occurring unigrams from negative reviews, enabling businesses to easily spot recurrent issues.
+- Feature: Executive AI Summary. Llama-3.1's generative contextual output regarding the health of the uploaded data.
+- Feature: Download PDF Export. An intensely animated, custom liquid-stroke download button that simulates fetching reports.
+
+3. THE INTERACTIVE AI CHAT BOT
+- Feature: High-Fidelity Floating Glass Card. Positioned with exact aspect-ration precision, decorated with a slow-spinning border beam and an upward-drifting white sub-particle background.
+- Feature: Active LLM Querying. Users can ask conversational questions (e.g., "Why are my customers leaving 1 star reviews?") and the Chat system bounces the context to the Groq backend model for instant conversational assistance.
+
+4. ABOUT US PAGE
+- Feature: Storytelling Canvas. An intricate "ScrollyCanvas" or detailed text section communicating the mission, methodology, and values backing the OpinionIQ platform.
+- Feature: Glassmorphism Callouts. Utilizes heavily stylized frosted-glass container layers to separate chunks of information seamlessly above abstract lighting loops.
+
+5. CONTACT / PROFILE PAGE
+- Feature: Profile Rendering. Statically imported picture ensuring foolproof path resolution. 
+- Feature: Meet the Developer Card. A stunning `ShineBorder` neon-edge container presenting academic credentials, email, portfolio links, and social redirects mapping to LinkedIn and GitHub.
+- Feature: Responsive Matrix. Scales perfectly down to mobile resolutions without breaking the bounding boxes or text overlapping. 
+
+6. GLOBAL UI/UX INITIATIVES
+- Feature: Persistent Navigation Bar. Translucent glass bar allowing instant switching between Home, Tools, and Information pages.
+- Feature: Device Agnostic Layout. Deep adherence to Tailwind's mobile-first responsive utility classes (px-4, md:px-12) to ensure a flawless experience across Apple IOS, Android, and Desktop monitors.

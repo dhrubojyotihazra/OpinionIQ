@@ -1,10 +1,14 @@
 import { motion } from 'framer-motion';
 import {
     Sparkles, Zap, TrendingUp, Database,
-    Upload, BarChart3, Bot, CheckCircle2, ArrowRight,
+    Upload, BarChart3, Bot, ArrowRight
 } from 'lucide-react';
 import { ShineBorder } from '@/components/ui/shine-border';
 import GeometricBackground from '@/components/ui/geometric';
+import MagicBento from '@/components/ui/magic-bento';
+import { GlowCard } from '@/components/ui/spotlight-card';
+import { GlassButton } from '@/components/ui/glass-button';
+import { RainbowButton } from '@/components/ui/rainbow-borders-button';
 
 /* ─── reusable fade-up variant ─── */
 const fadeUp = (delay = 0) => ({
@@ -30,10 +34,6 @@ export default function About() {
 
                 {/* ══ HERO ══ */}
                 <motion.div {...fadeUp(0)}>
-                    <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold uppercase tracking-widest mb-6">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        About OpinionIQ
-                    </span>
                     <h1 className="text-4xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-purple-300 mb-6 leading-tight">
                         Transform Customer Feedback<br className="hidden md:block" /> into Actionable Intelligence
                     </h1>
@@ -125,33 +125,50 @@ export default function About() {
                         Key Features
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {[
-                            {
-                                title: 'Intelligent Column Detection',
-                                body:  'LLM-powered column mapping recognises feedback, rating, sentiment, and date columns regardless of naming convention. Supports any CSV structure.',
-                            },
-                            {
-                                title: 'Full-Dataset Analysis',
-                                body:  'Unlike sample-based tools, OpinionIQ computes sentiment distributions, rating statistics, and keyword frequencies across the entire dataset.',
-                            },
-                            {
-                                title: 'Interactive Visualizations',
-                                body:  'Powered by Plotly.js — responsive, interactive sentiment pie, rating distribution bar, and top keyword charts all rendered in the browser.',
-                            },
-                            {
-                                title: 'Dual-Mode AI Chat',
-                                body:  'Switch between Data Query mode for exact statistics and Report Query mode for qualitative insights. Backed by real aggregate stats, not samples.',
-                            },
-                        ].map(({ title, body }) => (
-                            <ShineBorder key={title} className={GLASS} color={SHINE_COLORS}>
-                                <div className="relative z-10">
-                                    <CheckCircle2 className="w-8 h-8 text-emerald-400 mb-4" />
-                                    <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
-                                    <p className="text-slate-400 leading-relaxed">{body}</p>
-                                </div>
-                            </ShineBorder>
-                        ))}
+                    <div className="rounded-3xl overflow-hidden">
+                        <MagicBento
+                            cards={[
+                                {
+                                    label: 'Smart Mapping',
+                                    title: 'Intelligent Column Detection',
+                                    description: 'LLM-powered column mapping recognises feedback, rating, sentiment, and date columns regardless of naming convention. Supports any CSV structure.',
+                                },
+                                {
+                                    label: 'Full Dataset',
+                                    title: 'Full-Dataset Analysis',
+                                    description: 'Unlike sample-based tools, OpinionIQ computes sentiment distributions, rating statistics, and keyword frequencies across the entire dataset.',
+                                },
+                                {
+                                    label: 'Visualizations',
+                                    title: 'Interactive Charts',
+                                    description: 'Powered by Plotly.js — responsive, interactive sentiment pie, rating distribution bar, and top keyword charts all rendered in the browser.',
+                                },
+                                {
+                                    label: 'AI Chat',
+                                    title: 'Dual-Mode AI Chat',
+                                    description: 'Switch between Data Query mode for exact statistics and Report Query mode for qualitative insights. Backed by real aggregate stats, not samples.',
+                                },
+                                {
+                                    label: 'Speed',
+                                    title: 'Lightning Fast',
+                                    description: 'Process 20,000+ rows in seconds with Groq Llama 3.1. From CSV upload to full sentiment report in under 5 seconds.',
+                                },
+                                {
+                                    label: 'No-Code',
+                                    title: 'Zero Configuration',
+                                    description: 'No technical expertise needed. Upload your CSV and OpinionIQ handles everything — column detection, analysis, and insights automatically.',
+                                },
+                            ]}
+                            textAutoHide={true}
+                            enableStars={true}
+                            enableSpotlight={true}
+                            enableBorderGlow={true}
+                            enableTilt={true}
+                            enableMagnetism={true}
+                            clickEffect={true}
+                            glowColor="132, 0, 255"
+                            particleCount={10}
+                        />
                     </div>
                 </motion.div>
 
@@ -222,9 +239,10 @@ export default function About() {
 
                 {/* ══ CTA ══ */}
                 <motion.div {...fadeUp(0.5)} className="mt-14 w-full">
-                    <ShineBorder
-                        className="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 border border-white/20 backdrop-blur-md p-6 sm:p-12 w-full !max-w-none !block text-center"
-                        color={SHINE_COLORS}
+                    <GlowCard 
+                        glowColor="purple"
+                        customSize={true}
+                        className="w-full !max-w-none !block p-6 sm:p-12 text-center bg-gradient-to-br from-indigo-900/30 to-purple-900/30 border border-white/20 aspect-auto min-h-[400px] flex flex-col items-center justify-center"
                     >
                         <div className="relative z-10 flex flex-col items-center">
                             <Sparkles className="w-10 h-10 text-indigo-300 mx-auto mb-4" />
@@ -235,22 +253,27 @@ export default function About() {
                                 Start analyzing sentiment and uncovering insights in minutes.
                                 No technical expertise required — just upload your CSV and go.
                             </p>
-                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                <button
+                            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center w-full max-w-xl">
+                                <GlassButton
                                     onClick={() => (window.location.href = '/')}
-                                    className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-base font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02]"
+                                    className="w-full sm:w-1/2 h-[56px] text-lg hover:scale-[1.05]"
+                                    contentClassName="flex items-center gap-2"
                                 >
-                                    Get Started Now
-                                </button>
-                                <button
+                                    <span>Get Started Now</span>
+                                    <Zap className="h-5 w-5 text-indigo-300" />
+                                </GlassButton>
+                                <RainbowButton
                                     onClick={() => (window.location.href = '/dashboard')}
-                                    className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/15 text-white text-base font-semibold rounded-xl transition-all hover:scale-[1.02]"
+                                    className="w-full sm:w-1/2 min-h-[56px] text-lg hover:scale-[1.05]"
                                 >
-                                    View Dashboard
-                                </button>
+                                    <div className="flex items-center gap-2">
+                                        <span>View Dashboard</span>
+                                        <TrendingUp className="h-5 w-5" />
+                                    </div>
+                                </RainbowButton>
                             </div>
                         </div>
-                    </ShineBorder>
+                    </GlowCard>
                 </motion.div>
 
             </div>

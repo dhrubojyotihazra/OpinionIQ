@@ -1,0 +1,42 @@
+========================================================
+OPINIONIQ: DEPLOYMENT AND SECURITY REPORT
+========================================================
+
+1. DEPLOYMENT ARCHITECTURE
+OpinionIQ is deployed using a split-hosting strategy to bypass platform billing limitations while maintaining high availability.
+
+FRONTEND DEPLOYMENT (Vercel)
+- The React application is continuously integrated into Vercel via GitHub.
+- Vercel automatically runs `npm run build` using the TypeScript/Vite config.
+- A custom `VITE_API_URL` environment variable binds the production frontend to the Hosted Backend.
+- Vercel handles global Edge distribution, asset caching, and HTTPS mapping.
+
+BACKEND DEPLOYMENT (Hugging Face Spaces - Docker)
+- The Flask backend is deployed on a free CPU-tier Hugging Face space.
+- A custom `Dockerfile` was synthesized to pull the Python 3.9 base image, install requirements, and run the Gunicorn server on WSGI port 7860.
+- A sophisticated isolation tactic was implemented via the Git CLI to strip all frontend images, ensuring the Hugging Face scanner did not reject the repository due to missing Git-LFS configurations.
+
+2. SECURITY HARDENING AND PROTOCOLS
+Before pushing the application to production, several major security flaws and vulnerabilities were neutralized:
+
+A. CREDENTIAL ABSTRACTION (.env)
+- Problem: The Groq and Hugging Face API keys were previously hardcoded within `app.py`, making them visible to anyone with access to the GitHub repository.
+- Solution: Abstracted all keys to the OS Environment variable level. Local environments use `python-dotenv`, while Hugging Face gets keys securely injected via their encrypted Secrets Dashboard.
+
+B. CROSS-ORIGIN RESOURCE SHARING (CORS) DEFENSE
+- Problem: Early iterations of the Flask app used a wildcard `CORS(app)`.
+- Solution: Forced strict domain checking using `CORS_ORIGINS`. In production, the backend is instructed only to answer network requests that explicitly originate from the assigned Vercel URL.
+
+C. DENIAL OF SERVICE (DoS) MITIGATION
+- Problem: Users could spam the backend API endpoints, potentially draining the Groq API monthly quota or crashing the remote server CPU.
+- Solution: Implemented `Flask-Limiter` with a memory storage backend. The `/analyze` and `/chat` routes are now strictly limited (e.g., 5 per minute per endpoint).
+
+D. MALICIOUS FILE INJECTION PROTECTION
+- Problem: The backend blindly absorbed any uploaded file format into a buffer.
+- Solution: 
+  1. Enforced a `MAX_CONTENT_LENGTH` constraint (50 MB) to protect the server's memory boundaries.
+  2. Implemented strict file-extension validation, verifying the trailing signature is exclusively `.csv` before invoking Pandas.
+
+E. EXPOSING DEBUG STACK TRACES
+- Problem: Flask was actively running with `debug=True`, which can provide malicious actors with source-code mapping.
+- Solution: Converted the launch configuration to monitor a `FLASK_ENV` environment value. In production, debug mode is strictly bypassed, and Gunicorn is used as a production-grade load balancer instead of the native Flask development server.

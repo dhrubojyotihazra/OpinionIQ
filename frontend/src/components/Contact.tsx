@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Mail, Globe, GraduationCap, MapPin } from 'lucide-react';
+import { Github, Linkedin, Mail, GraduationCap, MapPin } from 'lucide-react';
 import { ShineBorder } from '@/components/ui/shine-border';
 import GeometricBackground from '@/components/ui/geometric';
+import { ButtonWithIcon } from '@/components/ui/button-with-icon';
 
 import profileImage from '../../public/profile.jpg';
 
@@ -145,15 +146,13 @@ export default function Contact() {
                         </div>
 
                         {/* ── Portfolio button ── */}
-                        <a
+                        <ButtonWithIcon
                             href={PROFILE.portfolio}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98]"
                         >
-                            <Globe className="w-4 h-4" />
                             View Portfolio
-                        </a>
+                        </ButtonWithIcon>
 
                     </div>
                 </ShineBorder>

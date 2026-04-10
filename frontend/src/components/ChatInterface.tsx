@@ -3,6 +3,12 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, Database, FileText, AlertCircle, Sparkles, Trash2, Copy, Check, ChevronDown } from 'lucide-react';
 import { config } from '../config';
+import GeometricBackground from '@/components/ui/geometric';
+import { ShiningText } from '@/components/ui/shining-text';
+import { AnimatedText } from '@/components/ui/animated-text';
+import { BlurredStagger } from '@/components/ui/blurred-stagger-text';
+import SiriOrb from '@/components/ui/siri-orb';
+import RadiantPromptInput from '@/components/ui/radiant-prompt-input';
 
 /* ─────────────── types ─────────────── */
 interface Message {
@@ -142,29 +148,27 @@ export default function ChatInterface() {
 
     /* ── main ── */
     return (
-        <div style={{
-            minHeight: '100vh',
-            height: '100vh',
-            background: 'linear-gradient(135deg, #09090f 0%, #0d0d1a 50%, #090912 100%)',
-            display: 'flex',
-            flexDirection: 'column',
-            fontFamily: "'Inter', system-ui, sans-serif",
-        }}>
+        <GeometricBackground className="min-h-screen h-screen w-full">
+          <div className="h-full w-full flex flex-col relative z-20" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             {/* spacer for top nav */}
             <div style={{ height: 80, flexShrink: 0 }} />
 
             {/* ── content column ── */}
             <div className="flex-1 flex flex-col w-full max-w-[860px] mx-auto px-3 sm:px-5 md:px-8 pb-6 min-h-0">
                 {/* ── header row ── */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexShrink: 0 }}>
+                <div className="flex items-start justify-between mb-5 flex-shrink-0 gap-4">
                     {/* title */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Sparkles style={{ width: 18, height: 18, color: '#818cf8' }} />
-                        <span style={{ color: '#fff', fontWeight: 600, fontSize: 17 }}>AI Chat</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: 6 }}>
-                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34d399', display: 'inline-block', animation: 'pulse 2s infinite' }} />
-                            <span style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Live</span>
-                        </span>
+                    <div className="flex items-center gap-3">
+                        <AnimatedText 
+                            text="OpinionAI" 
+                            className="items-start" 
+                            textClassName="text-xl font-bold text-white tracking-wide" 
+                            underlineHeight="h-[2px]" 
+                            underlineGradient="from-indigo-500 to-purple-500" 
+                            duration={0.6}
+                            delay={0.08}
+                        />
+                        <BlurredStagger text="You can now chat with your data and report." />
                     </div>
 
                     {/* mode toggle + clear */}
@@ -226,18 +230,21 @@ export default function ChatInterface() {
                                     className="group max-w-[90%] sm:max-w-[82%]"
                                 >
                                     {/* avatar */}
-                                    <div style={{
-                                        width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        background: msg.role === 'assistant' ? 'rgba(79,70,229,0.25)' : 'rgba(255,255,255,0.1)',
-                                        border: msg.role === 'assistant' ? '1px solid rgba(129,140,248,0.3)' : '1px solid rgba(255,255,255,0.15)',
-                                        marginTop: 2,
-                                    }}>
-                                        {msg.role === 'assistant'
-                                            ? <Bot style={{ width: 14, height: 14, color: '#a5b4fc' }} />
-                                            : <span style={{ fontSize: 10, fontWeight: 700, color: '#cbd5e1' }}>U</span>
-                                        }
-                                    </div>
+                                    {msg.role === 'assistant' ? (
+                                        <div className="flex-shrink-0 mt-0.5">
+                                            <SiriOrb size="30px" />
+                                        </div>
+                                    ) : (
+                                        <div style={{
+                                            width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            background: 'rgba(255,255,255,0.1)',
+                                            border: '1px solid rgba(255,255,255,0.15)',
+                                            marginTop: 2,
+                                        }}>
+                                            <span style={{ fontSize: 10, fontWeight: 700, color: '#cbd5e1' }}>U</span>
+                                        </div>
+                                    )}
 
                                     {/* bubble */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -288,14 +295,11 @@ export default function ChatInterface() {
                                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                                     style={{ display: 'flex', gap: 10, alignItems: 'flex-start', alignSelf: 'flex-start' }}
                                 >
-                                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(79,70,229,0.25)', border: '1px solid rgba(129,140,248,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                                        <Bot style={{ width: 14, height: 14, color: '#a5b4fc' }} />
+                                    <div className="flex-shrink-0 mt-0.5">
+                                        <SiriOrb size="30px" />
                                     </div>
                                     <div style={{ padding: '12px 18px', borderRadius: '4px 18px 18px 18px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 5, alignItems: 'center' }}>
-                                        {[0, 0.15, 0.3].map((delay, i) => (
-                                            <motion.span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#818cf8', display: 'inline-block' }}
-                                                animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay }} />
-                                        ))}
+                                        <ShiningText text="OpinionAI is Thinking" />
                                     </div>
                                 </motion.div>
                             )}
@@ -336,71 +340,20 @@ export default function ChatInterface() {
                     ))}
                 </div>
 
-                {/* ── INPUT BAR — fully opaque, no backdrop ── */}
+                {/* ── INPUT BAR ── */}
                 <div style={{
                     marginTop: 12,
                     flexShrink: 0,
-                    borderRadius: 16,
-                    background: '#1e2030',
-                    border: '1.5px solid rgba(255,255,255,0.15)',
-                    overflow: 'hidden',
+                    width: '100%',
                 }}>
-                    {/* textarea row */}
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, padding: '14px 16px 8px' }}>
-                        {/* mode pill */}
-                        <span style={{
-                            flexShrink: 0, alignSelf: 'flex-end', marginBottom: 4,
-                            padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 700,
-                            textTransform: 'uppercase', letterSpacing: '0.08em',
-                            background: chatMode === 'data' ? 'rgba(79,70,229,0.35)' : 'rgba(124,58,237,0.35)',
-                            color: chatMode === 'data' ? '#a5b4fc' : '#c4b5fd',
-                            border: chatMode === 'data' ? '1px solid rgba(129,140,248,0.4)' : '1px solid rgba(196,181,253,0.4)',
-                        }}>
-                            {chatMode}
-                        </span>
-
-                        <textarea
-                            ref={textareaRef}
-                            rows={1}
-                            value={input}
-                            onChange={e => setInput(e.target.value)}
-                            onKeyDown={onKey}
-                            disabled={isLoading}
-                            placeholder={chatMode === 'data' ? 'Ask a data question…' : 'Ask for a report insight…'}
-                            style={{
-                                flex: 1,
-                                background: 'transparent',
-                                border: 'none',
-                                outline: 'none',
-                                resize: 'none',
-                                color: '#ffffff',
-                                fontSize: 14,
-                                lineHeight: 1.55,
-                                fontFamily: 'inherit',
-                                caretColor: '#ffffff',
-                                padding: '2px 0',
-                                maxHeight: 130,
-                                overflowY: 'auto',
-                            }}
-                        />
-                    </div>
-
-                    {/* bottom bar: hint + send */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between px-4 pb-3 pt-2 gap-3 sm:gap-0">
-                        <span className="text-slate-500 text-[10px] sm:text-[11px] self-start sm:self-auto hidden sm:block">Shift+Enter for new line</span>
-                        <button
-                            onClick={send}
-                            disabled={!input.trim() || isLoading}
-                            className={`flex items-center gap-2 px-5 py-2 rounded-xl border-none text-[13px] font-semibold transition-all w-full sm:w-auto justify-center ${
-                                !input.trim() || isLoading
-                                    ? 'bg-white/5 text-slate-500 cursor-not-allowed'
-                                    : chatMode === 'data' ? 'bg-indigo-600 text-white hover:bg-indigo-500 cursor-pointer' : 'bg-purple-600 text-white hover:bg-purple-500 cursor-pointer'
-                            }`}
-                        >
-                            <Send style={{ width: 13, height: 13 }} />
-                            Send
-                        </button>
-                    </div>
+                    <RadiantPromptInput 
+                        value={input}
+                        onChange={setInput}
+                        onSubmit={send}
+                        disabled={isLoading}
+                        placeholder={chatMode === 'data' ? 'Ask a data question…' : 'Ask for a report insight…'}
+                        className="max-w-full"
+                    />
                 </div>
 
                 {/* footer */}
@@ -415,6 +368,7 @@ export default function ChatInterface() {
                 textarea::placeholder { color: #475569; }
                 ::-webkit-scrollbar { display: none; }
             `}</style>
-        </div>
+          </div>
+        </GeometricBackground>
     );
 }

@@ -1,0 +1,31 @@
+========================================================
+OPINIONIQ: COMPREHENSIVE TECHNICAL REPORT
+========================================================
+
+1. ARCHITECTURE OVERVIEW
+OpinionIQ follows a decoupled, modern Client-Server architecture. 
+- Frontend: Built on React 18, orchestrated by Vite for rapid HMR and optimized production builds.
+- Backend: Built on Python Flask, functioning as a stateless REST API designed to handle data ingestion, natural language processing, and bridging communication to LLMs.
+
+2. FRONTEND TECHNICAL STACK
+- Framework: React (TypeScript) via Vite.
+- Styling: Tailwind CSS combined with custom global CSS for utility-first responsive design.
+- Animation Engine: Framer Motion. Heavily utilized for complex UI interactions, stagger animations, liquid loaders, and the signature "upload" hero geometric background.
+- Component Library: Radix UI primitives integrated with custom 'ShineBorder' and 'Glassmorphism' containers.
+- Routing: React Router DOM handles multi-page navigation across Home, Dashboard, Chat, About, and Contact.
+- Data Visualization: React-Plotly.js for rendering dynamic, accessible, and responsive visual charts natively.
+
+3. BACKEND TECHNICAL STACK
+- Server: Flask (Python 3) wrapping a WSGI environment run by Gunicorn in production.
+- Data Processing: Pandas. It converts uploaded CSV buffers into DataFrames to compute aggregations, miss-value interpolations, and top keyword slicing. 
+- Local NLP Model: TextBlob is integrated locally to perform baseline Sentiment Polarity and Subjectivity analysis directly on Pandas structures.
+- Generative AI Integration: Custom synchronous bridging using the official `groq` Python SDK to stream prompt-based insights from the `llama-3.1-70b-versatile` LLM.
+
+4. LLM PIPELINE AND PROMPT ENGINEERING
+- Model: Llama 3.1 70B via Groq API.
+- Integration Method: The backend takes structured analytical insights derived from Pandas (like top negative keywords or ratio of 5-star ratings) and injects them into a pre-structured System Prompt.
+- Feature Parity: The AI model is strictly asked for JSON formatting so the Flask app can unpack the analysis, maintaining a controlled contract with the Frontend React types. 
+
+5. STATE MANAGEMENT
+- Frontend: Leverages React Hooks (`useState`, `useEffect`) and the underlying Browser `sessionStorage` to maintain logical states across the UI components without needing heavier global stores like Redux.
+- Backend: Uses application-level global variables (`global_std_df`) for demonstration-scale in-memory storage, persisting standard dataframes across individual HTTP requests.
