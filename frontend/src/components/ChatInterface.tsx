@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, Database, FileText, AlertCircle, Sparkles, Trash2, Copy, Check, ChevronDown } from 'lucide-react';
+import { Database, FileText, AlertCircle, Trash2, Copy, Check, ChevronDown } from 'lucide-react';
 import { config } from '../config';
 import GeometricBackground from '@/components/ui/geometric';
 import { ShiningText } from '@/components/ui/shining-text';
@@ -110,9 +110,7 @@ export default function ChatInterface() {
         }
     };
 
-    const onKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-    };
+
 
     const copy = (id: string, text: string) => {
         navigator.clipboard.writeText(text);

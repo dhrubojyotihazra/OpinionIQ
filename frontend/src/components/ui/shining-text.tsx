@@ -1,6 +1,6 @@
 "use client" 
 
-import * as React from "react"
+
 import { motion } from "framer-motion"; // Using framer-motion which is already present
  
 export function ShiningText({text}: {text: string}) {
