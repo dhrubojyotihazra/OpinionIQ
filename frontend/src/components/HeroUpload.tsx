@@ -6,8 +6,7 @@ import { HeroGeometric } from '@/components/ui/shape-landing-hero';
 import FileUpload from '@/components/ui/file-upload';
 import { UploadCard, type UploadStatus } from '@/components/ui/upload-ui';
 import { config } from '../config';
-import { GlassButton } from '@/components/ui/glass-button';
-import { Zap } from 'lucide-react';
+
 
 interface CardState {
     status: UploadStatus;
@@ -111,28 +110,6 @@ const HeroUpload: React.FC = () => {
                         />
                     )}
                 </AnimatePresence>
-
-                {/* Main CTA for Landing Page */}
-                {!card && (
-                    <div className="flex flex-col items-center justify-center pb-8">
-                        <GlassButton
-                            size="lg"
-                            className="w-full sm:w-[280px] h-[56px] shadow-indigo-500/20 shadow-2xl"
-                            contentClassName="flex items-center justify-center gap-3 text-xl tracking-tight"
-                            onClick={() => {
-                                // Scrolly / Focus the dropzone
-                                const dev = document.querySelector('.dropzone-section');
-                                if (dev) dev.scrollIntoView({ behavior: 'smooth' });
-                            }}
-                        >
-                            <span>Get Started Now</span>
-                            <Zap className="w-6 h-6 text-indigo-300 fill-indigo-300/20" />
-                        </GlassButton>
-                        <p className="mt-4 text-white/50 text-sm font-light">
-                            Experience the power of OpinionIQ analytics
-                        </p>
-                    </div>
-                )}
 
                 {/* FileUpload dropzone + file list */}
                 <div className="dropzone-section">
