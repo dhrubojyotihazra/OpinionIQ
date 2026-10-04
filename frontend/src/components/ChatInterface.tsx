@@ -356,7 +356,7 @@ export default function ChatInterface() {
 
                 {/* footer */}
                 <p style={{ textAlign: 'center', color: '#334155', fontSize: 10, marginTop: 8, flexShrink: 0 }}>
-                    Powered by Groq · Llama 3.1 · OpinionIQ
+                    Powered by Groq Cloud · OpinionIQ
                 </p>
             </div>
 

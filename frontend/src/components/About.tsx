@@ -54,9 +54,9 @@ export default function About() {
                             </div>
                             <p className="text-slate-300 text-lg leading-relaxed">
                                 OpinionIQ combines cutting-edge AI models with intuitive visualizations to automatically
-                                analyze customer sentiment from CSV datasets. Upload your feedback, reviews, or survey
+                                analyze customer sentiment from CSV and Excel datasets. Upload your feedback, reviews, or survey
                                 responses and receive instant insights powered by an LLM-driven column mapping pipeline
-                                and Groq's Llama 3.1 language model — capable of processing <strong className="text-white">20 000+ rows in seconds</strong>.
+                                and Groq's ultra-fast inference engine — capable of processing <strong className="text-white">20 000+ rows in seconds</strong>.
                             </p>
                         </div>
                     </ShineBorder>
@@ -79,8 +79,8 @@ export default function About() {
                                 <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 block">Step 01</span>
                                 <h3 className="text-xl font-semibold text-white mb-3">Upload Your Data</h3>
                                 <p className="text-slate-400 leading-relaxed">
-                                    Drag-and-drop your CSV file. The AI automatically maps columns to a
-                                    standard schema with Groq Llama 3.1 — no manual configuration needed.
+                                    Drag-and-drop your CSV or Excel file. The AI automatically maps columns to a
+                                    standard schema with Groq AI — no manual configuration needed.
                                 </p>
                             </div>
                         </ShineBorder>
@@ -151,12 +151,12 @@ export default function About() {
                                 {
                                     label: 'Speed',
                                     title: 'Lightning Fast',
-                                    description: 'Process 20,000+ rows in seconds with Groq Llama 3.1. From CSV upload to full sentiment report in under 5 seconds.',
+                                    description: 'Process 20,000+ rows in seconds with Groq high-speed inference. From upload to full sentiment report in under 5 seconds.',
                                 },
                                 {
                                     label: 'No-Code',
                                     title: 'Zero Configuration',
-                                    description: 'No technical expertise needed. Upload your CSV and OpinionIQ handles everything — column detection, analysis, and insights automatically.',
+                                    description: 'No technical expertise needed. Upload your CSV or Excel file and OpinionIQ handles everything automatically.',
                                 },
                             ]}
                             textAutoHide={true}
@@ -205,7 +205,7 @@ export default function About() {
                                     <ul className="space-y-3">
                                         {[
                                             'Python Flask REST API',
-                                            'Groq API — Llama 3.1-8b-instant',
+                                            'Groq Cloud API (High-Speed LLM Inference)',
                                             'TextBlob sentiment fallback',
                                             'Pandas + NumPy data pipeline',
                                             'NLTK keyword extraction',

@@ -25,7 +25,7 @@ os.environ["GROQ_API_KEY"] = GROQ_API_KEY
 os.environ["HF_TOKEN"] = HF_TOKEN
 # ==========================================
 
-GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_MODEL = os.getenv("GROQ_MODEL")
 
 app = Flask(__name__)
 
@@ -86,38 +86,129 @@ global_std_df = None   # standardized DataFrame after pipeline
 global_mapped_cols = []
 
 # ---------------------------------------------------------------------------
-# Groq HTTP wrapper  (reuses the urllib-based approach established earlier)
+# Groq HTTP wrapper with Self-Healing Model Auto-Fallback
+# Automatically discovers active models on the Groq account and falls back
+# if a primary model is ever deprecated or removed.
 # ---------------------------------------------------------------------------
 class GroqModel:
-    def __init__(self, model_name: str):
-        self.model_name = model_name
+    # Ranked preference list of models to try
+    PREFERRED_MODELS = [
+        "openai/gpt-oss-20b",
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.8-27b",
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+    ]
 
-    def chat(self, prompt: str, temperature: float = 0.0, max_tokens: int = 700) -> str:
-        url  = "https://api.groq.com/openai/v1/chat/completions"
-        data = json.dumps({
-            "model":    self.model_name,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": temperature,
-            "max_tokens":  max_tokens,
-        }).encode("utf-8")
+    def __init__(self, initial_model: str = None):
+        self.preferred_model = initial_model or os.getenv("GROQ_MODEL")
+        self.active_model = None
+        self.available_models = []
+        self._resolve_active_model()
 
-        req = urllib.request.Request(url, data=data, headers={
+    def _fetch_available_models(self) -> list:
+        url = "https://api.groq.com/openai/v1/models"
+        req = urllib.request.Request(url, headers={
             "Authorization": f"Bearer {GROQ_API_KEY}",
-            "Content-Type":  "application/json",
-            "User-Agent":    (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0.0.0 Safari/537.36 OpinionIQ/1.0"
-            )
+            "Content-Type": "application/json",
+            "User-Agent": "OpinionIQ/1.0"
         })
-
         try:
-            with urllib.request.urlopen(req) as resp:
-                raw = resp.read().decode("utf-8")
-                result = json.loads(raw)
-                return result["choices"][0]["message"]["content"].strip()
-        except urllib.error.HTTPError as e:
-            raise Exception(f"Groq API Error: {e.read().decode('utf-8')}")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                models = [
+                    m["id"] for m in data.get("data", [])
+                    if m.get("active", True)
+                    and "text" in m.get("output_modalities", ["text"])
+                    and not m["id"].startswith(("whisper", "meta-llama/llama-prompt-guard"))
+                ]
+                return models
+        except Exception as e:
+            print(f"[GroqModel] Warning: Could not fetch active models list from Groq: {e}")
+            return []
+
+    def _resolve_active_model(self):
+        available = self._fetch_available_models()
+        self.available_models = available
+
+        # 1. If preferred model is set and explicitly active, use it
+        if self.preferred_model and (self.preferred_model in available):
+            self.active_model = self.preferred_model
+            print(f"[GroqModel] Using preferred model: {self.active_model}")
+            return
+
+        # 2. Pick the highest priority model available on the user's account
+        if available:
+            for candidate in self.PREFERRED_MODELS:
+                if candidate in available:
+                    self.active_model = candidate
+                    print(f"[GroqModel] Auto-selected active model: {self.active_model}")
+                    return
+            self.active_model = available[0]
+            print(f"[GroqModel] Fallback to available model: {self.active_model}")
+            return
+
+        # 3. Default fallback if API check failed
+        self.active_model = self.preferred_model or self.PREFERRED_MODELS[0]
+        print(f"[GroqModel] Defaulting model to: {self.active_model}")
+
+    def chat(self, prompt: str, temperature: float = 0.0, max_tokens: int = 1000) -> str:
+        if not self.active_model:
+            self._resolve_active_model()
+
+        # Build candidate trial sequence starting with current active model
+        models_to_try = [self.active_model]
+        for m in self.PREFERRED_MODELS + self.available_models:
+            if m not in models_to_try:
+                models_to_try.append(m)
+
+        last_error = None
+        for model_name in models_to_try:
+            try:
+                url  = "https://api.groq.com/openai/v1/chat/completions"
+                data = json.dumps({
+                    "model":       model_name,
+                    "messages":    [{"role": "user", "content": prompt}],
+                    "temperature": temperature,
+                    "max_tokens":  max_tokens,
+                }).encode("utf-8")
+
+                req = urllib.request.Request(url, data=data, headers={
+                    "Authorization": f"Bearer {GROQ_API_KEY}",
+                    "Content-Type":  "application/json",
+                    "User-Agent":    (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/122.0.0.0 Safari/537.36 OpinionIQ/1.0"
+                    )
+                })
+
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    raw = resp.read().decode("utf-8")
+                    result = json.loads(raw)
+                    content = result["choices"][0]["message"]["content"].strip()
+                    if self.active_model != model_name:
+                        print(f"[GroqModel] Automatically switched and saved active model: {model_name}")
+                        self.active_model = model_name
+                    return content
+
+            except urllib.error.HTTPError as e:
+                err_text = e.read().decode("utf-8")
+                # If model is deprecated / not found / not allowed, fail over to the next candidate
+                if "model_not_found" in err_text or "does not exist" in err_text or e.code == 404:
+                    print(f"[GroqModel] Model '{model_name}' unavailable ({err_text}). Auto-falling back to next model...")
+                    last_error = Exception(f"Groq API Error: {err_text}")
+                    continue
+                else:
+                    raise Exception(f"Groq API Error: {err_text}")
+            except Exception as e:
+                print(f"[GroqModel] Request error with '{model_name}': {e}. Trying fallback...")
+                last_error = e
+                continue
+
+        if last_error:
+            raise last_error
+        raise Exception("No active Groq models available.")
 
 
 model = GroqModel(GROQ_MODEL)
@@ -127,8 +218,18 @@ model = GroqModel(GROQ_MODEL)
 # PIPELINE FUNCTIONS  (ported 1-to-1 from the notebook)
 # ===========================================================================
 
-def load_dataset_from_bytes(content_bytes: bytes) -> pd.DataFrame:
-    """Cell 2 – load_dataset: encoding fallback + drop fully-empty rows/cols."""
+def load_dataset_from_bytes(content_bytes: bytes, filename: str = "") -> pd.DataFrame:
+    """Cell 2 – load_dataset: supports CSV and Excel (.xlsx, .xls) + encoding fallback."""
+    if filename.lower().endswith((".xlsx", ".xls")):
+        print(f"Loading Excel file: {filename} …")
+        stream = io.BytesIO(content_bytes)
+        df = pd.read_excel(stream)
+        df.dropna(how="all", inplace=True)
+        df.dropna(axis=1, how="all", inplace=True)
+        print(f"Loaded Excel: {df.shape[0]:,} rows × {df.shape[1]} columns")
+        return df
+
+    # Otherwise CSV
     try:
         raw_text = content_bytes.decode("utf-8")
     except UnicodeDecodeError:
@@ -152,7 +253,7 @@ def load_dataset_from_bytes(content_bytes: bytes) -> pd.DataFrame:
     df.dropna(how="all", inplace=True)
     df.dropna(axis=1, how="all", inplace=True)
 
-    print(f"Loaded: {df.shape[0]:,} rows × {df.shape[1]} columns")
+    print(f"Loaded CSV: {df.shape[0]:,} rows × {df.shape[1]} columns")
     return df
 
 
@@ -392,13 +493,14 @@ def upload_csv():
 
     try:
         # Validate file extension
-        if not file.filename.endswith('.csv'):
-            return jsonify({"error": "Only CSV files are allowed"}), 400
+        valid_extensions = ('.csv', '.xlsx', '.xls')
+        if not any(file.filename.lower().endswith(ext) for ext in valid_extensions):
+            return jsonify({"error": "Only CSV, XLSX, or XLS files are allowed"}), 400
 
         content_bytes = file.stream.read()
 
         # Step 1 – load dataset (notebook Cell 2)
-        df_raw = load_dataset_from_bytes(content_bytes)
+        df_raw = load_dataset_from_bytes(content_bytes, file.filename)
 
         # Step 2 – map columns via Groq LLM (notebook Cell 3)
         raw_mapping = map_columns_with_groq(df_raw)
@@ -415,6 +517,7 @@ def upload_csv():
             "message":         "File uploaded and processed successfully",
             "total_rows":      len(df_raw),
             "mapped_columns":  mapped_cols,
+            "model_used":      model.active_model,
         }), 200
 
     except Exception as e:
@@ -504,6 +607,7 @@ def analyze():
 
             # Executive summary
             "summary":                executive_summary,
+            "model_used":             model.active_model,
         }), 200
 
     except Exception as e:

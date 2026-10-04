@@ -148,10 +148,10 @@ export default function FileUpload({ onUpload, onSuccess, onError }: FileUploadP
                     <div className="space-y-1.5">
                         <h3 className="text-lg md:text-xl font-semibold text-white/80">
                             {isDragging
-                                ? 'Drop your CSV here'
+                                ? 'Drop your dataset here'
                                 : files.length
                                     ? 'Upload another file'
-                                    : 'Drag & drop your CSV'}
+                                    : 'Drag & drop your CSV or Excel file'}
                         </h3>
                         <p className="text-white/40 text-sm">
                             {isDragging ? (
@@ -162,7 +162,7 @@ export default function FileUpload({ onUpload, onSuccess, onError }: FileUploadP
                         </p>
                         <p className="text-xs text-white/20 flex items-center justify-center gap-1.5 mt-1">
                             <FileSpreadsheet size={12} className="text-emerald-400" />
-                            .CSV files only — zero configuration required
+                            CSV or Excel (.xlsx, .xls) — zero configuration required
                         </p>
                     </div>
                 </div>
@@ -171,7 +171,7 @@ export default function FileUpload({ onUpload, onSuccess, onError }: FileUploadP
                     ref={inputRef}
                     type="file"
                     hidden
-                    accept=".csv,text/csv"
+                    accept=".csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,.xlsx,.xls"
                     onChange={onSelect}
                 />
             </motion.div>
