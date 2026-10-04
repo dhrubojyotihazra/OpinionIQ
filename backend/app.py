@@ -29,6 +29,14 @@ GROQ_MODEL = os.getenv("GROQ_MODEL")
 
 app = Flask(__name__)
 
+@app.route('/')
+def home():
+    return {
+        "status": "success",
+        "message": "OpinionIQ API is fully operational and running on Hugging Face Spaces!",
+        "active_model": model.active_model if hasattr(model, "active_model") else "auto"
+    }
+
 # Security: Limit file upload size to 50MB
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
